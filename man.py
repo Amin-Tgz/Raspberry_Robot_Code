@@ -64,9 +64,6 @@ Buttons = [
 ]
 
 
-def Select_device():
-    print("Select device you want to control robot? keyboard or joystick")
-
 def key(event):
     if event.keysym == 'Escape':
         Stop()
@@ -86,7 +83,7 @@ def key(event):
         Ball()
     elif 'F2' == event.keysym:
         v.set(2)
-        Select_device()
+        Man()
     # for camera
     elif 'w' == event.keysym:
         print("W")
@@ -119,8 +116,9 @@ def Tilt_U():
 def Tilt_D():
     Setting_Send("Tilt-")
 def Ball():
-    Setting_Send("C_M_B")
-
+    Setting_Send("Autonomous")
+def Man():
+    Setting_Send("Manual")
 Label_GUI = Label(root,
                   text="""Choose Mode :""",
                   compound=CENTER,
@@ -139,7 +137,7 @@ RB2 = Radiobutton(root,
                   text=Modes[1],
                   padx=20,
                   variable=v,
-                  command=Select_device,
+                  command=Man,
                   value=val[1]).place(x=5, y=65, width=80, height=20)
 
 B1 = Button(root, text=Buttons[1], bg=color[0], fg="red", bd=12, command=Left()).place(x=95, y=90, width=80,
@@ -153,21 +151,7 @@ B3 = Button(root, text=Buttons[3], bg=color[0], fg='red', bd=12, command=Up()).p
 #############
 B4 = Button(root, text=Buttons[0], bg=color[0], fg='red', bd=12, command=Right()).place(x=265, y=90, width=80,
                                                                                    height=45)  # Right
-
-
-#
-#
-t1 = Thread(target=Get_image)
-t1.start()
-
+Image_thread = Thread(target=Get_image)
+Image_thread.start()
 root.bind_all('<Key>', key)
 root.mainloop()
-
-
-
-
-#
-# t1 = Thread(target=root.bind_all('<Key>', key))
-# t1.start()
-# t3 = Thread(target=root.mainloop)
-# t3.start()
