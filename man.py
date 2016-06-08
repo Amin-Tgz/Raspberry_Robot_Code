@@ -47,7 +47,7 @@ color = ["navy", "green", "blue", "red"]
 root = Tk()
 root.wm_iconbitmap('rasp.ico')
 v = IntVar()
-v.set(1)
+v.set(2)
 root.geometry("390x170+30+30")
 root.title("HMI for Raspduino Robot")
 
@@ -116,7 +116,7 @@ def Tilt_U():
 def Tilt_D():
     Setting_Send("Tilt-")
 def Ball():
-    Setting_Send("Autonomous")
+    Setting_Send("Auto")
 def Man():
     Setting_Send("Manual")
 Label_GUI = Label(root,

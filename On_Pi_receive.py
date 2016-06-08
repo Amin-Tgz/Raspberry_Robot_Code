@@ -7,6 +7,7 @@ from imutils.video import VideoStream
 import cv2
 import numpy
 import time
+from queue import Queue
 
 x_degree = 105
 y_degree = 91
@@ -17,7 +18,7 @@ TCP_IP = '192.168.1.6'
 TCP_PORT = 2222
 my_socket = socket.socket()
 my_socket.connect((TCP_IP, TCP_PORT))
-autonomous_flag = 0
+# autonomous_flag = 0
 time.sleep(2.0)
 Serial_Port = serial.Serial('/dev/ttyAMA0', 115200, timeout=1)
 encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
@@ -25,6 +26,10 @@ Video_Stream = VideoStream(usePiCamera=1 > 0).start()
 time.sleep(2.0)
 greenLower = (49, 75, 51)
 greenUpper = (100, 255, 255)
+
+autonomous_flag = 0
+# autonomous_flag.put(1)
+
 #####################################################
 ################## Move ####################
 ## refrence ##
@@ -182,65 +187,67 @@ def Get_Setting():
                 Serial_Port.write(('T,' + str(y_degree)).encode())
             else:
                 y_degree = 10
-        elif set == b'Autonomous':
+        elif set == b'Auto':
             autonomous_flag = 1
+            print ("auto")
+
         elif set == b'Manual':
             autonomous_flag = 0
+            print ("man")
 
 
 def Ball_tarcking():
     global x
     global y
     global radius
-    frm = 0
-    t_s_ball = time.time()
-    while frm < 1000:
-        frm = frm + 1
-        frame = Video_Stream.read()
-        frame = imutils.resize(frame, width=400)
-        blurred = cv2.GaussianBlur(frame, (11, 11), 0)
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(hsv, greenLower, greenUpper)
-        mask = cv2.erode(mask, None, iterations=2)
-        mask = cv2.dilate(mask, None, iterations=2)
-        cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
-                                cv2.CHAIN_APPROX_SIMPLE)[-2]
-        center = None
-        if len(cnts) > 0:
-            c = max(cnts, key=cv2.contourArea)
-            ((x, y), radius) = cv2.minEnclosingCircle(c)
-            M = cv2.moments(c)
-            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-            if radius > 10:
-                cv2.circle(frame, (int(x), int(y)), int(radius),
-                           (0, 255, 255), 2)
-                cv2.circle(frame, center, 5, (0, 0, 255), -1)
-                PID_Controller(x, y, radius)
-        cv2.imshow("Image", frame)
+    # frm = 0
+    # t_s_ball = time.time()
+    # while True:
+    # frm = frm + 1
+    frame = Video_Stream.read()
+    frame = imutils.resize(frame, width=400)
+    blurred = cv2.GaussianBlur(frame, (11, 11), 0)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, greenLower, greenUpper)
+    mask = cv2.erode(mask, None, iterations=2)
+    mask = cv2.dilate(mask, None, iterations=2)
+    cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
+                            cv2.CHAIN_APPROX_SIMPLE)[-2]
+    center = None
+    if len(cnts) > 0:
+        c = max(cnts, key=cv2.contourArea)
+        ((x, y), radius) = cv2.minEnclosingCircle(c)
+        M = cv2.moments(c)
+        center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+        if radius > 10:
+            cv2.circle(frame, (int(x), int(y)), int(radius),
+                       (0, 255, 255), 2)
+            cv2.circle(frame, center, 5, (0, 0, 255), -1)
+            PID_Controller(x, y, radius)
+    # cv2.imshow("Image", frame)
 
-        # socket_send(frame)
-        key = cv2.waitKey(1) & 0xFF
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            main()
-    t_e_ball = time.time()
-    print(1000 / (t_e_ball - t_s_ball))
+    socket_send(frame)
+    # t_e_ball = time.time()
+    # print(1000 / (t_e_ball - t_s_ball))
 
 
 ###
 def Camera_Send():
     global autonomous_flag
-    while autonomous_flag == 1:
-        Ball_tarcking()
-    while autonomous_flag == 0:
-        frame = Video_Stream.read()
-        frame = imutils.resize(frame, width=600)
-        # cv2.imshow("Image", frame)
-        socket_send(frame)
+    while True:
+        Mode = autonomous_flag
+        if Mode == 1:
+            Ball_tarcking()
+        elif Mode == 0:
+            frame = Video_Stream.read()
+            frame = imutils.resize(frame, width=600)
+            # cv2.imshow("Image", frame)
+            socket_send(frame)
 
 
 t1 = Thread(target=Camera_Send)
 t2 = Thread(target=Get_Setting)
 t2.start()
 t1.start()
-
-
+t1.join()
+t2.join()
