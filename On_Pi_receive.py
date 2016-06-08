@@ -1,36 +1,44 @@
+######## Imports #########
+
 from threading import Thread
-# from serial import Serial
+from serial import Serial
 import socket
-import serial
 import imutils
 from imutils.video import VideoStream
 import cv2
 import numpy
-import time
-from queue import Queue
+from time import sleep
 
-x_degree = 105
-y_degree = 91
+###### Socket Parameters Set #######
 UDP_IP = "0.0.0.0"
 UDP_PORT = 2000
 BUFFER_SIZE = 20
-TCP_IP = '192.168.1.6'
+TCP_IP = '192.168.137.1'
 TCP_PORT = 2222
 my_socket = socket.socket()
 my_socket.connect((TCP_IP, TCP_PORT))
-time.sleep(2.0)
-Serial_Port = serial.Serial('/dev/ttyAMA0', 115200, timeout=1)
+
+########  Serial Port   ########
+Serial_Port = Serial('/dev/ttyAMA0', 115200, timeout=1)
+
+######  Pre_Needed for Start Video Processing ######
+
 encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
 Video_Stream = VideoStream(usePiCamera=1 > 0).start()
-time.sleep(2.0)
+sleep(2.0)
 greenLower = (49, 75, 51)
 greenUpper = (100, 255, 255)
 
+####    flag of autonomous ####
 autonomous_flag = 0
 
-#####################################################
-################## Move ####################
+## PID Parameter ##
 ## refrence ##
+## define variables ##
+##### Set_Point #####
+x_degree = 100
+y_degree = 85
+
 x0 = 200
 y0 = 150
 x = 0
@@ -45,9 +53,9 @@ err_y_past = 10
 #######
 PX = 0.12
 IX = 0.009
-DX = 0.01
+DX = 0.012
 #
-PY = 0.13
+PY = 0.2
 IY = 0.0035
 DY = 0.001
 
@@ -90,19 +98,18 @@ def PID_Controller(H, V, R):
         err_Y_diff = -80
 
     x_degree = int(100 - PX * err_x + IX * err_X_sum + DX * err_X_diff)
-    if x_degree > 175:
-        x_degree = 175
-    if x_degree < 30:
-        x_degree = 30
+    if x_degree > 165:
+        x_degree = 165
+    if x_degree < 45:
+        x_degree = 45
 
-    y_degree = int(PY * err_y + IY * err_Y_sum + DY * err_Y_diff + 91)
-    if y_degree < 65:
-        y_degree = 65
+    y_degree = int(PY * err_y + IY * err_Y_sum + DY * err_Y_diff + 85)
+    if y_degree < 25:
+        y_degree = 25
     if y_degree > 130:
         y_degree = 130
 
     # serial.write(b'P,{}'.format).x_degree
-    print(int(H), int(R))
     Serial_Port.write(('P,' + str(x_degree)).encode())
     Serial_Port.write(('T,' + str(y_degree)).encode())
     # t = t + 1
@@ -132,7 +139,6 @@ def PID_Controller(H, V, R):
 
 
 #############   socket_send   ###################
-
 def socket_send(frame_get):
     global IsRunning
     result, imgencode = cv2.imencode('.jpg', frame_get, encode_param)
@@ -142,10 +148,10 @@ def socket_send(frame_get):
         my_socket.send((str(len(stringdata)).encode()).ljust(16))
         my_socket.send(stringdata)
     except :
-        print ("ERROR!!")
+        print ("    OOPS!   \nConnection Terminated by HOST!\nThread one has been Killed!\n   :|  ")
         quit()
 
-
+#### Thread Two ###
 def Get_Setting():
     global autonomous_flag
     global x_degree
@@ -177,14 +183,12 @@ def Get_Setting():
             else:
                 x_degree = 50
         elif set == b'Tilt-':
-            print("yy")
             y_degree = y_degree + 5
             if y_degree < 150:
                 Serial_Port.write(('T,' + str(y_degree)).encode())
             else:
                 y_degree = 150
         elif set == b'Tilt+':
-            print("tt")
             y_degree = y_degree - 5
             if y_degree > 10:
                 Serial_Port.write(('T,' + str(y_degree)).encode())
@@ -192,22 +196,16 @@ def Get_Setting():
                 y_degree = 10
         elif set == b'Auto':
             autonomous_flag = 1
-            print ("auto")
 
         elif set == b'Manual':
             autonomous_flag = 0
-            print ("man")
 
 
-
+#### Thread one ###
 def Ball_tarcking():
     global x
     global y
     global radius
-    # frm = 0
-    # t_s_ball = time.time()
-    # while True:
-    # frm = frm + 1
     frame = Video_Stream.read()
     frame = imutils.resize(frame, width=400)
     blurred = cv2.GaussianBlur(frame, (11, 11), 0)
@@ -215,8 +213,7 @@ def Ball_tarcking():
     mask = cv2.inRange(hsv, greenLower, greenUpper)
     mask = cv2.erode(mask, None, iterations=2)
     mask = cv2.dilate(mask, None, iterations=2)
-    cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
-                            cv2.CHAIN_APPROX_SIMPLE)[-2]
+    cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)[-2]
     center = None
     if len(cnts) > 0:
         c = max(cnts, key=cv2.contourArea)
@@ -227,28 +224,24 @@ def Ball_tarcking():
             cv2.circle(frame, (int(x), int(y)), int(radius),
                        (0, 255, 255), 2)
             cv2.circle(frame, center, 5, (0, 0, 255), -1)
+            ##   |    ##
+### ==>     ##   |    ##
+            ##  \/    ##
             PID_Controller(x, y, radius)
-    # cv2.imshow("Image", frame)
-
     socket_send(frame)
-    # t_e_ball = time.time()
-    # print(1000 / (t_e_ball - t_s_ball))
 
-
-###
+###### choose wich mode ####
 def Camera_Send():
     global autonomous_flag
     while True:
-        Mode = autonomous_flag
-        if Mode == 1:
+        if autonomous_flag == 1:
             Ball_tarcking()
-        elif Mode == 0:
+        elif autonomous_flag == 0:
             frame = Video_Stream.read()
             frame = imutils.resize(frame, width=600)
-            # cv2.imshow("Image", frame)
             socket_send(frame)
 
-
+######    Threads Start    #######
 t1 = Thread(target=Camera_Send)
 t2 = Thread(target=Get_Setting)
 t2.start()
