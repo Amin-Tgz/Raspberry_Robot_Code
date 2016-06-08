@@ -6,7 +6,7 @@ import cv2
 import numpy
 import time
 from threading import Thread
-
+# from sys
 ######## Pre_define functiron_varaiavle ##########
 UDP_IP = "192.168.1.103"
 UDP_PORT = 2000

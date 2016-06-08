@@ -1,5 +1,5 @@
 from threading import Thread
-import threading
+# from serial import Serial
 import socket
 import serial
 import imutils
@@ -18,7 +18,6 @@ TCP_IP = '192.168.1.6'
 TCP_PORT = 2222
 my_socket = socket.socket()
 my_socket.connect((TCP_IP, TCP_PORT))
-# autonomous_flag = 0
 time.sleep(2.0)
 Serial_Port = serial.Serial('/dev/ttyAMA0', 115200, timeout=1)
 encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
@@ -28,7 +27,6 @@ greenLower = (49, 75, 51)
 greenUpper = (100, 255, 255)
 
 autonomous_flag = 0
-# autonomous_flag.put(1)
 
 #####################################################
 ################## Move ####################
@@ -136,11 +134,16 @@ def PID_Controller(H, V, R):
 #############   socket_send   ###################
 
 def socket_send(frame_get):
+    global IsRunning
     result, imgencode = cv2.imencode('.jpg', frame_get, encode_param)
     data = numpy.array(imgencode)
     stringdata = data.tostring()
-    my_socket.send((str(len(stringdata)).encode()).ljust(16))
-    my_socket.send(stringdata)
+    try:
+        my_socket.send((str(len(stringdata)).encode()).ljust(16))
+        my_socket.send(stringdata)
+    except :
+        print ("ERROR!!")
+        quit()
 
 
 def Get_Setting():
@@ -196,6 +199,7 @@ def Get_Setting():
             print ("man")
 
 
+
 def Ball_tarcking():
     global x
     global y
@@ -207,7 +211,7 @@ def Ball_tarcking():
     frame = Video_Stream.read()
     frame = imutils.resize(frame, width=400)
     blurred = cv2.GaussianBlur(frame, (11, 11), 0)
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, greenLower, greenUpper)
     mask = cv2.erode(mask, None, iterations=2)
     mask = cv2.dilate(mask, None, iterations=2)
@@ -249,5 +253,3 @@ t1 = Thread(target=Camera_Send)
 t2 = Thread(target=Get_Setting)
 t2.start()
 t1.start()
-t1.join()
-t2.join()
