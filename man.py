@@ -7,9 +7,10 @@ import numpy
 from threading import Thread
 
 ######## Socket => Set Parameters ##########
-UDP_IP = "192.168.137.164"
+UDP_IP = "192.168.1.103"
+# UDP_IP = 'localhost'
 UDP_PORT = 2000
-TCP_IP = '0.0.0.0'
+TCP_IP = '192.168.1.6'
 TCP_PORT = 2222
 Socker_Server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 Socker_Server.bind((TCP_IP, TCP_PORT))
@@ -22,12 +23,15 @@ root = Tk()
 root.wm_iconbitmap('rasp.ico')
 v = IntVar()
 v.set(2)
-root.geometry("390x170+30+30")
+root.geometry("390x300+30+30")
+root.resizable(0,0)
 root.title("HMI for Raspduino Robot")
 Modes = ["Ball", "Manual"]
 val = [1, 2]
 Buttons = ["Right", "LEFT", "Down", "UP"]
-
+background_image=PhotoImage(file="Q.gif")
+background_label = Label(root, image=background_image)
+background_label.place(x=0, y=0, relwidth=1, relheight=1)
 
 ######### Functions ###########
 def recvall(sock, count):
@@ -39,13 +43,29 @@ def recvall(sock, count):
         count -= len(newbuf)
     return buf
 
+
+def Ball():
+    v.set(1)
+    Setting_Send("Auto")
+
+
+def Man():
+    v.set(2)
+    Setting_Send("Manual")
+
+
 def Setting_Send(MESSAGE):
-    sock.sendto(MESSAGE.encode(), (UDP_IP, UDP_PORT))
+        sock.sendto(MESSAGE.encode(), (UDP_IP, UDP_PORT))
 
 def Get_image():
     while True:
         length = recvall(conn, 16)
-        stringData = recvall(conn, int(length))
+        try:
+            stringData = recvall(conn, int(length))
+        except TypeError:
+            print ("Connection Lost!\ntry to reconnect plz\n    o__o")
+            quit()
+
         data = numpy.fromstring(stringData, dtype='uint8')
         decimg = cv2.imdecode(data, 1)
         cv2.imshow('Image_Received', decimg)
@@ -53,7 +73,7 @@ def Get_image():
             break
 
 def key(event):
-    if event.keysym == 'Escape':
+    if event.keysym == 'F4':
         root.quit()
     elif 'Up' == event.keysym:
         Setting_Send("Up")
@@ -81,14 +101,6 @@ def key(event):
     elif 's' == event.keysym:
         Setting_Send("Tilt-")
 
-def Ball():
-    v.set(1)
-    Setting_Send("Auto")
-
-def Man():
-    v.set(2)
-    Setting_Send("Manual")
-
 def Up():
     Setting_Send("Up")
 def Down():
@@ -98,6 +110,20 @@ def Left():
 def Right():
     Setting_Send("Right")
 
+def set_PP(event):
+    Setting_Send ('PP,'+EPP.get())
+def set_IP(event):
+    Setting_Send ('IP,'+EIP.get())
+def set_DP(event):
+    Setting_Send ('DP,'+EDP.get())
+
+def set_PT(event):
+    Setting_Send ('PT,'+EPT.get())
+def set_IT(event):
+    Setting_Send ('IT,'+EIT.get())
+def set_DT(event):
+    Setting_Send ('DT,'+EDT.get())
+
 ##########   GUI - CONFIG      #########
 
 Label_GUI = Label(root,
@@ -106,6 +132,80 @@ Label_GUI = Label(root,
                   justify=LEFT,
                   padx=20
                   ).place(x=3, y=10, width=100, height=20)
+############################################
+Label_Pan = Label(root,
+                  text="""Pan:""",
+                  compound=CENTER,
+                  justify=LEFT,
+                  padx=1
+                  ).place(x=15, y=215, width=30, height=20)
+Label_Tilt = Label(root,
+                  text="""Tilt:""",
+                  compound=CENTER,
+                  justify=LEFT,
+                  padx=1
+                  ).place(x=200, y=215, width=30, height=20)
+############################################
+Label_PP = Label(root,
+                  text="""P""",
+                  compound=CENTER,
+                  justify=LEFT,
+                  padx=20
+                  ).place(x=65, y=180, width=20, height=20)
+EPP = Entry(root, bd =5)
+EPP.place(x=100, y=180, width=60, height=30)
+EPP.bind("<Return>", set_PP)
+######
+Label_IP = Label(root,
+                  text="""I""",
+                  compound=CENTER,
+                  justify=LEFT,
+                  padx=20
+                  ).place(x=65, y=215, width=20, height=20)
+EIP = Entry(root, bd =5)
+EIP.place(x=100, y=215, width=60, height=30)
+EIP.bind("<Return>", set_IP)
+######
+Label_DP = Label(root,
+                  text="""D""",
+                  compound=CENTER,
+                  justify=LEFT,
+                  padx=20
+                  ).place(x=65, y=250, width=20, height=20)
+EDP = Entry(root, bd =5)
+EDP.place(x=100, y=250, width=60, height=30)
+EDP.bind("<Return>", set_DP)
+############################################
+Label_PT = Label(root,
+                  text="""P""",
+                  compound=CENTER,
+                  justify=LEFT,
+                  padx=20
+                  ).place(x=250, y=180, width=20, height=20)
+EPT = Entry(root, bd =5)
+EPT.place(x=300, y=180, width=60, height=30)
+EPT.bind("<Return>", set_PT)
+
+Label_IT = Label(root,
+                  text="""I""",
+                  compound=CENTER,
+                  justify=LEFT,
+                  padx=20
+                  ).place(x=250, y=215, width=20, height=20)
+EIT = Entry(root, bd =5)
+EIT.place(x=300, y=215, width=60, height=30)
+EIT.bind("<Return>", set_IT)
+
+Label_DT = Label(root,
+                  text="""D""",
+                  compound=CENTER,
+                  justify=LEFT,
+                  padx=20
+                  ).place(x=250, y=250, width=20, height=20)
+EDT = Entry(root, bd =5)
+EDT.place(x=300, y=250, width=60, height=30)
+EDT.bind("<Return>", set_DT)
+
 
 RB1 = Radiobutton(root,
                   text=Modes[0],
@@ -121,10 +221,10 @@ RB2 = Radiobutton(root,
                   command=Man,
                   value=val[1]).place(x=5, y=65, width=80, height=20)
 
-B1 = Button(root, text=Buttons[1], bg=color[0], fg="red", bd=12, command=Left()).place(x=95, y=90, width=80,height=45)  # LEFT
-B2 = Button(root, text=Buttons[2], bg=color[0], fg='red', bd=12, command=Down()).place(x=180, y=90, width=80,height=45)  # Down
-B3 = Button(root, text=Buttons[3], bg=color[0], fg='red', bd=12, command=Up()).place(x=180, y=40, width=80,height=45)  # UP
-B4 = Button(root, text=Buttons[0], bg=color[0], fg='red', bd=12, command=Right()).place(x=265, y=90, width=80,height=45)  # Right
+B1 = Button(root, text=Buttons[1], bg=color[0], fg="red", bd=12, command=Left()).place(x=100, y=95, width=80,height=45)  # LEFT
+B2 = Button(root, text=Buttons[2], bg=color[0], fg='red', bd=12, command=Down()).place(x=185, y=95, width=80,height=45)  # Down
+B3 = Button(root, text=Buttons[3], bg=color[0], fg='red', bd=12, command=Up()).place(x=185, y=45, width=80,height=45)  # UP
+B4 = Button(root, text=Buttons[0], bg=color[0], fg='red', bd=12, command=Right()).place(x=270, y=95, width=80,height=45)  # Right
 
 ##########################################################################################
 ##########  Thread start ##########

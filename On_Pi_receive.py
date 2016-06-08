@@ -8,12 +8,14 @@ from imutils.video import VideoStream
 import cv2
 import numpy
 from time import sleep
+from math import sin
+from math import radians
 
 ###### Socket Parameters Set #######
-UDP_IP = "0.0.0.0"
+UDP_IP = "192.168.1.103"
 UDP_PORT = 2000
 BUFFER_SIZE = 20
-TCP_IP = '192.168.137.1'
+TCP_IP = '192.168.1.6'
 TCP_PORT = 2222
 my_socket = socket.socket()
 my_socket.connect((TCP_IP, TCP_PORT))
@@ -51,13 +53,13 @@ err_X_sum = 10
 err_x_past = 10
 err_y_past = 10
 #######
-PX = 0.12
-IX = 0.009
-DX = 0.012
+PX = 0.20
+IX = 0.05
+DX = 0.01
 #
 PY = 0.2
-IY = 0.0035
-DY = 0.001
+IY = 0.01
+DY = 0.02
 
 
 #
@@ -98,12 +100,14 @@ def PID_Controller(H, V, R):
         err_Y_diff = -80
 
     x_degree = int(100 - PX * err_x + IX * err_X_sum + DX * err_X_diff)
+    # print (x_degree,'x')
     if x_degree > 165:
         x_degree = 165
     if x_degree < 45:
         x_degree = 45
 
     y_degree = int(PY * err_y + IY * err_Y_sum + DY * err_Y_diff + 85)
+    # print (y_degree,'y')
     if y_degree < 25:
         y_degree = 25
     if y_degree > 130:
@@ -112,6 +116,9 @@ def PID_Controller(H, V, R):
     # serial.write(b'P,{}'.format).x_degree
     Serial_Port.write(('P,' + str(x_degree)).encode())
     Serial_Port.write(('T,' + str(y_degree)).encode())
+
+
+
     # t = t + 1
     # if t == 3:
     #     t = 0
@@ -123,6 +130,27 @@ def PID_Controller(H, V, R):
     #         Serial_Port.write(('M,5').encode())  # Stop
 
     #     ###
+
+    Pwm_L=0
+    Pwm_R=0
+    teta=x_degree - 105
+    # print(teta)
+    Pwm_L-=250*sin(radians(teta))
+    Pwm_R+=250*sin(radians(teta))
+
+    if Pwm_L > 255:
+       Pwm_L=255
+    elif Pwm_L < 60 :
+        Pwm_L = 0
+    if Pwm_R > 255:
+       Pwm_R=255
+    elif Pwm_R<60 :
+        Pwm_R = 0
+    # print(Pwm_L, 'R')
+    # print(Pwm_R, 'L')
+
+
+
 
     # if H < 45:
     #     Serial_Port.write(('M,3').encode())  # Left
@@ -154,52 +182,82 @@ def socket_send(frame_get):
 #### Thread Two ###
 def Get_Setting():
     global autonomous_flag
+
     global x_degree
     global y_degree
+
+    global PX
+    global IX
+    global DX
+
+    global PY
+    global IY
+    global DY
+
     while True:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
         sock.bind((UDP_IP, UDP_PORT))
-        set, addr = sock.recvfrom(1024)
-        if set == b'Up':
+        received , addr = sock.recvfrom(1024)
+        settings = received.decode()
+        if settings == 'Up':
             Serial_Port.write(('M,1').encode())
-        elif set == b'Down':
+        elif settings == 'Down':
             Serial_Port.write(('M,2').encode())
-        elif set == b'Left':
+        elif settings == 'Left':
             Serial_Port.write(('M,3').encode())
-        elif set == b'Right':
+        elif settings == 'Right':
             Serial_Port.write(('M,4').encode())
-        elif set == b'Stop':
+        elif settings == 'Stop':
             Serial_Port.write(('M,5').encode())
-        elif set == b'Pan+':
+        elif settings == 'Pan+':
             x_degree = x_degree - 5
             if x_degree < 150:
                 Serial_Port.write(('P,' + str(x_degree)).encode())
             else:
                 x_degree = 150
-        elif set == b'Pan-':
+        elif settings == 'Pan-':
             x_degree = x_degree + 5
             if x_degree > 50:
                 Serial_Port.write(('P,' + str(x_degree)).encode())
             else:
                 x_degree = 50
-        elif set == b'Tilt-':
+        elif settings == 'Tilt-':
             y_degree = y_degree + 5
             if y_degree < 150:
                 Serial_Port.write(('T,' + str(y_degree)).encode())
             else:
                 y_degree = 150
-        elif set == b'Tilt+':
+        elif settings == 'Tilt+':
             y_degree = y_degree - 5
             if y_degree > 10:
                 Serial_Port.write(('T,' + str(y_degree)).encode())
             else:
                 y_degree = 10
-        elif set == b'Auto':
+        elif settings == 'Auto':
             autonomous_flag = 1
 
-        elif set == b'Manual':
+        elif settings == 'Manual':
             autonomous_flag = 0
 
+        elif settings[0]== 'P' and settings[1]== 'P':
+            PX = float(settings[3:])
+            print (PX,"set as PX")
+        elif settings[0]== 'I' and settings[1]== 'P':   ## for Pan
+            IX = float(settings[3:])
+            print (IX,"set as IX")
+        elif settings[0]== 'D' and settings[1]== 'P':
+            DX = float(settings[3:])
+            print (DX,"set as DX")
+
+        elif settings[0]== 'P' and settings[1]== 'T':
+            PY = float(settings[3:])
+            print (PY,"set as PY")
+        elif settings[0]== 'I' and settings[1]== 'T':   ## for Tilt
+            IY = float(settings[3:])
+            print (IY,"set as IY")
+        elif settings[0]== 'D' and settings[1]== 'T':
+            DY = float(settings[3:])
+            print (DY,"set as DY")
 
 #### Thread one ###
 def Ball_tarcking():
