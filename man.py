@@ -4,6 +4,7 @@ import time
 from Tkinter import *
 import cv2
 import numpy
+from imutils import resize
 from threading import Thread
 
 ######## Socket => Set Parameters ##########
@@ -58,6 +59,8 @@ def Setting_Send(MESSAGE):
         sock.sendto(MESSAGE.encode(), (UDP_IP, UDP_PORT))
 
 def Get_image():
+    sss=time.time()
+    xx=0
     while True:
         length = recvall(conn, 16)
         try:
@@ -65,11 +68,14 @@ def Get_image():
         except TypeError:
             print ("Connection Lost!\ntry to reconnect plz\n    o__o")
             quit()
-
         data = numpy.fromstring(stringData, dtype='uint8')
         decimg = cv2.imdecode(data, 1)
-        cv2.imshow('Image_Received', decimg)
+        image_resized = resize(decimg,480,320)
+        cv2.imshow('Image_Received', image_resized)
+        xx += 1
         if cv2.waitKey(1) & 0xFF == ord('q'):
+            e=time.time()
+            print (xx/(e-sss))
             break
 
 def key(event):

@@ -3,8 +3,9 @@
 from threading import Thread
 from serial import Serial
 import socket
-import imutils
+from imutils import resize
 from imutils.video import VideoStream
+from imutils.video import FPS
 import cv2
 import numpy
 from time import sleep
@@ -26,13 +27,13 @@ Serial_Port = Serial('/dev/ttyAMA0', 115200, timeout=1)
 ######  Pre_Needed for Start Video Processing ######
 
 encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
-Video_Stream = VideoStream(usePiCamera=1 > 0).start()
+Video_Stream = VideoStream(usePiCamera=1 > 0).start() # => VideoStream(usePiCamera=1 > 0,resolution=(640,480)).start()
 sleep(2.0)
 greenLower = (49, 75, 51)
 greenUpper = (100, 255, 255)
 
 ####    flag of autonomous ####
-autonomous_flag = 0
+autonomous_flag = 1 # initial with Manual Mode
 
 ## PID Parameter ##
 ## refrence ##
@@ -265,9 +266,8 @@ def Ball_tarcking():
     global y
     global radius
     frame = Video_Stream.read()
-    frame = imutils.resize(frame, width=400)
-    blurred = cv2.GaussianBlur(frame, (11, 11), 0)
-    hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+    # blurred = cv2.GaussianBlur(frame, (11, 11), 0)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, greenLower, greenUpper)
     mask = cv2.erode(mask, None, iterations=2)
     mask = cv2.dilate(mask, None, iterations=2)
@@ -292,11 +292,10 @@ def Ball_tarcking():
 def Camera_Send():
     global autonomous_flag
     while True:
-        if autonomous_flag == 1:
+        while autonomous_flag == 1:
             Ball_tarcking()
-        elif autonomous_flag == 0:
-            frame = Video_Stream.read()
-            frame = imutils.resize(frame, width=600)
+        while autonomous_flag == 0:
+            frame = vs.read()
             socket_send(frame)
 
 ######    Threads Start    #######
