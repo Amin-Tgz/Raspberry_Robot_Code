@@ -33,7 +33,7 @@ greenLower = (49, 75, 51)
 greenUpper = (100, 255, 255)
 
 ####    flag of autonomous ####
-autonomous_flag = 1 # initial with Manual Mode
+autonomous_flag = 0 # initial with Manual Mode
 
 ## PID Parameter ##
 ## refrence ##
@@ -118,19 +118,12 @@ def PID_Controller(H, V, R):
     Serial_Port.write(('P,' + str(x_degree)).encode())
     Serial_Port.write(('T,' + str(y_degree)).encode())
 
-
-
-    # t = t + 1
-    # if t == 3:
-    #     t = 0
-    #     if R < 17:
-    #         Serial_Port.write(('M,1').encode())  # Go Ahead
-    #     elif R > 70:
-    #         Serial_Port.write(('M,2').encode())  # Back
-    #     else:
-    #         Serial_Port.write(('M,5').encode())  # Stop
-
-    #     ###
+    # if R < 17:
+    #     Serial_Port.write(('M,1').encode())  # Go Ahead
+    # elif R > 70:
+    #     Serial_Port.write(('M,2').encode())  # Back
+    # else:
+    #     Serial_Port.write(('M,5').encode())  # Stop
 
     Pwm_L=0
     Pwm_R=0
@@ -174,10 +167,12 @@ def socket_send(frame_get):
     data = numpy.array(imgencode)
     stringdata = data.tostring()
     try:
-        my_socket.send((str(len(stringdata)).encode()).ljust(16))
+        my_socket.send((str(len(stringdata)).encode()).ljust(1024))
         my_socket.send(stringdata)
     except :
         print ("    OOPS!   \nConnection Terminated by HOST!\nThread one has been Killed!\n   :|  ")
+        # t1.daemon=True
+        # t2.daemon=True
         quit()
 
 #### Thread Two ###
@@ -295,7 +290,7 @@ def Camera_Send():
         while autonomous_flag == 1:
             Ball_tarcking()
         while autonomous_flag == 0:
-            frame = vs.read()
+            frame = Video_Stream.read()
             socket_send(frame)
 
 ######    Threads Start    #######

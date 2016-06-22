@@ -6,7 +6,7 @@ import cv2
 import numpy
 from imutils import resize
 from threading import Thread
-
+###
 ######## Socket => Set Parameters ##########
 UDP_IP = "192.168.1.103"
 # UDP_IP = 'localhost'
@@ -24,7 +24,7 @@ root = Tk()
 root.wm_iconbitmap('rasp.ico')
 v = IntVar()
 v.set(2)
-root.geometry("390x300+30+30")
+root.geometry("400x300+30+30")
 root.resizable(0,0)
 root.title("HMI for Raspduino Robot")
 Modes = ["Ball", "Manual"]
@@ -33,7 +33,16 @@ Buttons = ["Right", "LEFT", "Down", "UP"]
 background_image=PhotoImage(file="Q.gif")
 background_label = Label(root, image=background_image)
 background_label.place(x=0, y=0, relwidth=1, relheight=1)
-
+########
+PX = "0.20"
+IX = "0.05"
+DX = "0.01"
+#
+PY = "0.2"
+IY = "0.01"
+DY = "0.02"
+#
+discon = cv2.imread('disco.jpg')
 ######### Functions ###########
 def recvall(sock, count):
     buf = b''
@@ -62,7 +71,7 @@ def Get_image():
     sss=time.time()
     xx=0
     while True:
-        length = recvall(conn, 16)
+        length = recvall(conn, 1024)
         try:
             stringData = recvall(conn, int(length))
         except TypeError:
@@ -70,12 +79,15 @@ def Get_image():
             quit()
         data = numpy.fromstring(stringData, dtype='uint8')
         decimg = cv2.imdecode(data, 1)
-        image_resized = resize(decimg,480,320)
-        cv2.imshow('Image_Received', image_resized)
+        image_resized = resize(decimg,480,320,inter=cv2.INTER_CUBIC)# inter = cv2.INTER_LINEAR \\ INTER_CUBIC \\INTER_LANCZOS4
+        cv2.imshow("Recieved", image_resized)
         xx += 1
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(32) == ord(' '):
             e=time.time()
             print (xx/(e-sss))
+            cv2.imshow("Recieved",discon)
+            cv2.waitKey(1500)
+            root.quit()
             break
 
 def key(event):
@@ -161,6 +173,7 @@ Label_PP = Label(root,
 EPP = Entry(root, bd =5)
 EPP.place(x=100, y=180, width=60, height=30)
 EPP.bind("<Return>", set_PP)
+EPP.insert(5,PX)
 ######
 Label_IP = Label(root,
                   text="""I""",
@@ -170,6 +183,7 @@ Label_IP = Label(root,
                   ).place(x=65, y=215, width=20, height=20)
 EIP = Entry(root, bd =5)
 EIP.place(x=100, y=215, width=60, height=30)
+EIP.insert(0,IX)
 EIP.bind("<Return>", set_IP)
 ######
 Label_DP = Label(root,
@@ -180,6 +194,7 @@ Label_DP = Label(root,
                   ).place(x=65, y=250, width=20, height=20)
 EDP = Entry(root, bd =5)
 EDP.place(x=100, y=250, width=60, height=30)
+EDP.insert(0,DX)
 EDP.bind("<Return>", set_DP)
 ############################################
 Label_PT = Label(root,
@@ -190,6 +205,7 @@ Label_PT = Label(root,
                   ).place(x=250, y=180, width=20, height=20)
 EPT = Entry(root, bd =5)
 EPT.place(x=300, y=180, width=60, height=30)
+EPT.insert(0,PY)
 EPT.bind("<Return>", set_PT)
 
 Label_IT = Label(root,
@@ -200,6 +216,7 @@ Label_IT = Label(root,
                   ).place(x=250, y=215, width=20, height=20)
 EIT = Entry(root, bd =5)
 EIT.place(x=300, y=215, width=60, height=30)
+EIT.insert(0,IY)
 EIT.bind("<Return>", set_IT)
 
 Label_DT = Label(root,
@@ -210,6 +227,7 @@ Label_DT = Label(root,
                   ).place(x=250, y=250, width=20, height=20)
 EDT = Entry(root, bd =5)
 EDT.place(x=300, y=250, width=60, height=30)
+EDT.insert(0,DY)
 EDT.bind("<Return>", set_DT)
 
 
