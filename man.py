@@ -6,7 +6,6 @@ import cv2
 import numpy
 from imutils import resize
 from threading import Thread
-###
 ######## Socket => Set Parameters ##########
 UDP_IP = "192.168.1.103"
 # UDP_IP = 'localhost'
@@ -33,6 +32,8 @@ Buttons = ["Right", "LEFT", "Down", "UP"]
 background_image=PhotoImage(file="Q.gif")
 background_label = Label(root, image=background_image)
 background_label.place(x=0, y=0, relwidth=1, relheight=1)
+##
+discon = cv2.imread('disco.jpg')
 ########
 PX = "0.20"
 IX = "0.05"
@@ -41,8 +42,6 @@ DX = "0.01"
 PY = "0.2"
 IY = "0.01"
 DY = "0.02"
-#
-discon = cv2.imread('disco.jpg')
 ######### Functions ###########
 def recvall(sock, count):
     buf = b''

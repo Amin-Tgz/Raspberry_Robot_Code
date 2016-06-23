@@ -11,7 +11,7 @@ import numpy
 from time import sleep
 from math import sin
 from math import radians
-
+from math import floor
 ###### Socket Parameters Set #######
 UDP_IP = "192.168.1.103"
 UDP_PORT = 2000
@@ -61,8 +61,6 @@ DX = 0.01
 PY = 0.2
 IY = 0.01
 DY = 0.02
-
-
 #
 ###########################
 def PID_Controller(H, V, R):
@@ -117,43 +115,54 @@ def PID_Controller(H, V, R):
     # serial.write(b'P,{}'.format).x_degree
     Serial_Port.write(('P,' + str(x_degree)).encode())
     Serial_Port.write(('T,' + str(y_degree)).encode())
-
-    # if R < 17:
-    #     Serial_Port.write(('M,1').encode())  # Go Ahead
-    # elif R > 70:
-    #     Serial_Port.write(('M,2').encode())  # Back
-    # else:
-    #     Serial_Port.write(('M,5').encode())  # Stop
-
+################################
     Pwm_L=0
     Pwm_R=0
-    teta=x_degree - 105
-    # print(teta)
-    Pwm_L-=250*sin(radians(teta))
-    Pwm_R+=250*sin(radians(teta))
-
+    teta=x_degree - 100
+    # print(teta,"teta")
+    Pwm_L-=370*sin(radians(teta))
+    Pwm_R+=370*sin(radians(teta))
+####
     if Pwm_L > 255:
        Pwm_L=255
-    elif Pwm_L < 60 :
-        Pwm_L = 0
+    elif -100 <= Pwm_L and Pwm_L <= 100:
+        if R < 17:
+            Pwm_L=150
+        elif R > 70:
+            Pwm_L=-150
+        else:
+            Pwm_L=0
+    elif Pwm_L < -255 :
+        Pwm_L = -255
+####
     if Pwm_R > 255:
        Pwm_R=255
-    elif Pwm_R<60 :
-        Pwm_R = 0
-    # print(Pwm_L, 'R')
-    # print(Pwm_R, 'L')
+    elif -100 <= Pwm_R and Pwm_R <= 100:
+        if R < 17:
+            Pwm_R=150
+        elif R > 70:
+            Pwm_R=-150
+        else:
+            Pwm_R=0
+    elif Pwm_R<-255 :
+        Pwm_R = -255
+        print(Pwm_L, 'L')
 
+###
+    if Pwm_L>0:
+        Serial_Port.write(('L,' + str(int(Pwm_L)+75)).encode())
+    elif Pwm_L <0:
+        Serial_Port.write(('F,' + str(int(floor(-1*Pwm_L))+75)).encode())
+    elif Pwm_L == 0 :
+        Serial_Port.write(('L,' + str(0)).encode())
+    print(Pwm_R, 'R')
 
-
-
-    # if H < 45:
-    #     Serial_Port.write(('M,3').encode())  # Left
-    # elif H > 360:
-    #     Serial_Port.write(('M,4').encode())  # Right
-    # else:
-    #     Serial_Port.write(('M,5').encode())  # Stop
-
-
+    if Pwm_R>0:
+        Serial_Port.write(('R,' + str(Pwm_R+75)).encode())
+    elif Pwm_R <0:
+        Serial_Port.write(('J,' + str(int(floor(-1*Pwm_R))+75)).encode())
+    elif Pwm_R == 0:
+        Serial_Port.write(('R,' + str(0)).encode())
 # 65<pos1<130   delay=25      for Tilt ref 91
 #      30<pos2<175   delay=10-20   for Pan  105
 #     Horiz = int((x/400)*145+30)
@@ -162,7 +171,6 @@ def PID_Controller(H, V, R):
 
 #############   socket_send   ###################
 def socket_send(frame_get):
-    global IsRunning
     result, imgencode = cv2.imencode('.jpg', frame_get, encode_param)
     data = numpy.array(imgencode)
     stringdata = data.tostring()
@@ -171,8 +179,6 @@ def socket_send(frame_get):
         my_socket.send(stringdata)
     except :
         print ("    OOPS!   \nConnection Terminated by HOST!\nThread one has been Killed!\n   :|  ")
-        # t1.daemon=True
-        # t2.daemon=True
         quit()
 
 #### Thread Two ###
@@ -196,15 +202,19 @@ def Get_Setting():
         received , addr = sock.recvfrom(1024)
         settings = received.decode()
         if settings == 'Up':
-            Serial_Port.write(('M,1').encode())
+            Serial_Port.write(('L,175').encode())
+            Serial_Port.write(('R,175').encode())
         elif settings == 'Down':
-            Serial_Port.write(('M,2').encode())
+            Serial_Port.write(('F,175').encode())
+            Serial_Port.write(('J,175').encode())
         elif settings == 'Left':
-            Serial_Port.write(('M,3').encode())
+            Serial_Port.write(('R,185').encode())
+            Serial_Port.write(('F,175').encode())
         elif settings == 'Right':
-            Serial_Port.write(('M,4').encode())
+            Serial_Port.write(('J,185').encode())
+            Serial_Port.write(('L,175').encode())
         elif settings == 'Stop':
-            Serial_Port.write(('M,5').encode())
+            Serial_Port.write(('S,5').encode())
         elif settings == 'Pan+':
             x_degree = x_degree - 5
             if x_degree < 150:
