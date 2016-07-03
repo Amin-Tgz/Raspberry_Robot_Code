@@ -25,8 +25,8 @@ v = IntVar()
 v.set(2)
 root.geometry("400x300+30+30")
 root.resizable(0,0)
-root.title("HMI for Raspduino Robot")
-Modes = ["Ball", "Manual"]
+root.title("GUI for Rasperry Robot")
+Modes = ["Ball Follower", "Manual"]
 val = [1, 2]
 Buttons = ["Right", "LEFT", "Down", "UP"]
 background_image=PhotoImage(file="Q.gif")
@@ -235,7 +235,7 @@ RB1 = Radiobutton(root,
                   padx=20,
                   variable=v,
                   command=Ball,
-                  value=val[0]).place(x=5, y=40, width=60, height=20)
+                  value=val[0]).place(x=3, y=40, width=110, height=20)
 
 RB2 = Radiobutton(root,
                   text=Modes[1],

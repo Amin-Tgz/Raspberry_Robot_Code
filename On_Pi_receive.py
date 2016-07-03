@@ -5,7 +5,6 @@ from serial import Serial
 import socket
 from imutils import resize
 from imutils.video import VideoStream
-from imutils.video import FPS
 import cv2
 import numpy
 from time import sleep
@@ -33,7 +32,7 @@ greenLower = (49, 75, 51)
 greenUpper = (100, 255, 255)
 
 ####    flag of autonomous ####
-autonomous_flag = 0 # initial with Manual Mode
+autonomous_flag = 1 # initial with Manual Mode
 
 ## PID Parameter ##
 ## refrence ##
@@ -64,7 +63,6 @@ DY = 0.02
 #
 ###########################
 def PID_Controller(H, V, R):
-    global t
     global err_x_past
     global err_y_past
     global err_Y_sum
@@ -291,6 +289,10 @@ def Ball_tarcking():
 ### ==>     ##   |    ##
             ##  \/    ##
             PID_Controller(x, y, radius)
+        else:
+            Serial_Port.write(('L,0').encode())
+            Serial_Port.write(('R,0').encode())
+
     socket_send(frame)
 
 ###### choose wich mode ####
