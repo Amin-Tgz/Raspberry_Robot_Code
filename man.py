@@ -1,4 +1,8 @@
-#################  Imports ###################
+'''
+Import Necessary Library
+
+.
+'''
 import socket
 import time
 from Tkinter import *
@@ -6,24 +10,95 @@ import cv2
 import numpy
 from imutils import resize
 from threading import Thread
-######## Socket => Set Parameters ##########
+
+'''
+Socket => Set Parameters
+
+TCP & UDP Address set
+for use on one pc : UDP_IP = 'localhost'
+Port must be above 1000 so dont need Permision
+'''
 UDP_IP = "192.168.1.103"
-# UDP_IP = 'localhost'
 UDP_PORT = 2000
 TCP_IP = '192.168.1.6'
 TCP_PORT = 2222
+
+'''
+Socket Types
+
+AF_INET is an address family that is used to designate
+the type of addresses that your socket can communicate with
+(in this case, Internet Protocol v4 addresses).
+When you create a socket, you have to specify its address family,
+ and then you can only use addresses of that type with the socket.
+  The Linux kernel, for example, supports 29 other address families
+  such as UNIX (AF_UNIX) sockets and IPX (AF_IPX),
+  and also communications with IRDA and
+  Bluetooth (AF_IRDA and AF_BLUETOOTH, but it is doubtful
+  you'll use these at such a low level).
+For the most part, sticking with AF_INET for socket programming over a network
+ is the safest option. There is also AF_INET6 for Internet Protocol v6 addresses.
+
+ #################
+There are two widely used socket types,
+stream sockets, and datagram sockets.
+ Stream sockets treat communications as a continuous stream of characters,
+ while datagram sockets have to read entire messages at once.
+  Each uses its own communciations protocol.
+  Stream sockets use TCP (Transmission Control Protocol),
+  which is a reliable, stream oriented protocol,
+  and datagram sockets use UDP (Unix Datagram Protocol),
+  which is unreliable and message oriented.
+'''
 Socker_Server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 Socker_Server.bind((TCP_IP, TCP_PORT))
+
+'''
+Socket Listen
+
+argument to listen tells the socket library
+that we want it to queue up as many as 5 connect requests
+(the normal max) before refusing outside connections
+'''
 Socker_Server.listen(1)
 conn, addr = Socker_Server.accept()
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
-######## GUI_TK  => Set Parameters ##########
+
+'''
+GUI_TK  => Set Parameters
+
+define colors can choose for button
+creat a TK obj
+'''
 color = ["navy", "green", "blue", "red"]
 root = Tk()
 root.wm_iconbitmap('rasp.ico')
+
+'''
+Tkinter Variable Classes
+
+x = StringVar() # Holds a string; default value ""
+x = IntVar() # Holds an integer; default value 0
+x = DoubleVar() # Holds a float; default value 0.0
+x = BooleanVar() # Holds a boolean,
+returns 0 for False and 1 for True
+To read the current value of such a variable,
+ call the method get().
+ The value of such a variable can be changed
+  with the set() method.
+'''
 v = IntVar()
 v.set(2)
 root.geometry("400x300+30+30")
+
+'''
+Forbiden resize!
+
+window.resizable(FALSE,FALSE)
+if resizable enable :
+    window.minsize(200,100)
+    window.maxsize(500,500)
+'''
 root.resizable(0,0)
 root.title("GUI for Rasperry Robot")
 Modes = ["Ball Follower", "Manual"]
@@ -32,37 +107,48 @@ Buttons = ["Right", "LEFT", "Down", "UP"]
 background_image=PhotoImage(file="Q.gif")
 background_label = Label(root, image=background_image)
 background_label.place(x=0, y=0, relwidth=1, relheight=1)
-##
 discon = cv2.imread('disco.jpg')
-########
-PX = "0.20"
-IX = "0.05"
-DX = "0.01"
+
+'''
+Set PID Coefficients
+
+Both for Pan & Tilt
+'''
+PX = "0.21"
+IX = "0.045"
+DX = "0.02"
 #
-PY = "0.2"
-IY = "0.01"
+PY = "0.21"
+IY = "0.025"
 DY = "0.02"
-######### Functions ###########
+
+'''
+Receive With Specified Length
+
+receive from client with this method
+'''
 def recvall(sock, count):
     buf = b''
     while count:
-        newbuf = sock.recv(count)  # receive from client with this method
-        if not newbuf: return None
+        newbuf = sock.recv(count)
+        if not newbuf : return None
         buf += newbuf
         count -= len(newbuf)
     return buf
 
+'''
+Some functions with clear duty
 
+Ball=> run when select Ball_Follower Mode
+Man => run when select Manual Mode
+Setting_Send => send through UDP
+'''
 def Ball():
     v.set(1)
     Setting_Send("Auto")
-
-
 def Man():
     v.set(2)
     Setting_Send("Manual")
-
-
 def Setting_Send(MESSAGE):
         sock.sendto(MESSAGE.encode(), (UDP_IP, UDP_PORT))
 
@@ -70,7 +156,7 @@ def Get_image():
     sss=time.time()
     xx=0
     while True:
-        length = recvall(conn, 1024)
+        length = recvall(conn, 16)
         try:
             stringData = recvall(conn, int(length))
         except TypeError:
@@ -81,7 +167,7 @@ def Get_image():
         image_resized = resize(decimg,480,320,inter=cv2.INTER_CUBIC)# inter = cv2.INTER_LINEAR \\ INTER_CUBIC \\INTER_LANCZOS4
         cv2.imshow("Recieved", image_resized)
         xx += 1
-        if cv2.waitKey(32) == ord(' '):
+        if cv2.waitKey(1) == ord(' '):
             e=time.time()
             print (xx/(e-sss))
             cv2.imshow("Recieved",discon)
@@ -89,6 +175,11 @@ def Get_image():
             root.quit()
             break
 
+'''
+ Get key Pressed by event & Send
+
+    set_xx functions use for entry's
+'''
 def key(event):
     if event.keysym == 'F4':
         root.quit()
@@ -141,8 +232,11 @@ def set_IT(event):
 def set_DT(event):
     Setting_Send ('DT,'+EDT.get())
 
-##########   GUI - CONFIG      #########
+'''
+GUI Configs
 
+Label,Entry,Button are placed in window
+'''
 Label_GUI = Label(root,
                   text="""Choose Mode :""",
                   compound=CENTER,
@@ -244,13 +338,16 @@ RB2 = Radiobutton(root,
                   command=Man,
                   value=val[1]).place(x=5, y=65, width=80, height=20)
 
-B1 = Button(root, text=Buttons[1], bg=color[0], fg="red", bd=12, command=Left()).place(x=100, y=95, width=80,height=45)  # LEFT
-B2 = Button(root, text=Buttons[2], bg=color[0], fg='red', bd=12, command=Down()).place(x=185, y=95, width=80,height=45)  # Down
-B3 = Button(root, text=Buttons[3], bg=color[0], fg='red', bd=12, command=Up()).place(x=185, y=45, width=80,height=45)  # UP
-B4 = Button(root, text=Buttons[0], bg=color[0], fg='red', bd=12, command=Right()).place(x=270, y=95, width=80,height=45)  # Right
+B1 = Button(root, text=Buttons[1], bg=color[0], fg="red", bd=12, command=Left).place(x=100, y=95, width=80,height=45)  # LEFT
+B2 = Button(root, text=Buttons[2], bg=color[0], fg='red', bd=12, command=Down).place(x=185, y=95, width=80,height=45)  # Down
+B3 = Button(root, text=Buttons[3], bg=color[0], fg='red', bd=12, command=Up).place(x=185, y=45, width=80,height=45)  # UP
+B4 = Button(root, text=Buttons[0], bg=color[0], fg='red', bd=12, command=Right).place(x=270, y=95, width=80,height=45)  # Right
 
-##########################################################################################
-##########  Thread start ##########
+'''
+Threads Start
+
+two thread start here
+'''
 Image_thread = Thread(target=Get_image)
 Image_thread.start()
 root.bind_all('<Key>', key)

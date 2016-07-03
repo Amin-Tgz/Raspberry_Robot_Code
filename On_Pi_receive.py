@@ -1,12 +1,10 @@
 ######## Imports #########
-
 from threading import Thread
 from serial import Serial
 import socket
-from imutils import resize
 from imutils.video import VideoStream
 import cv2
-import numpy
+from numpy import array
 from time import sleep
 from math import sin
 from math import radians
@@ -19,30 +17,27 @@ TCP_IP = '192.168.1.6'
 TCP_PORT = 2222
 my_socket = socket.socket()
 my_socket.connect((TCP_IP, TCP_PORT))
-
 ########  Serial Port   ########
 Serial_Port = Serial('/dev/ttyAMA0', 115200, timeout=1)
-
 ######  Pre_Needed for Start Video Processing ######
-
-encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
+encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 95]
 Video_Stream = VideoStream(usePiCamera=1 > 0).start() # => VideoStream(usePiCamera=1 > 0,resolution=(640,480)).start()
 sleep(2.0)
 greenLower = (49, 75, 51)
 greenUpper = (100, 255, 255)
 
 ####    flag of autonomous ####
-autonomous_flag = 1 # initial with Manual Mode
+autonomous_flag = 0 # initial with Manual Mode
 
 ## PID Parameter ##
 ## refrence ##
 ## define variables ##
 ##### Set_Point #####
-x_degree = 100
-y_degree = 85
+x_degree = 105
+y_degree = 90
 
-x0 = 200
-y0 = 150
+x0 = 160
+y0 = 120
 x = 0
 y = 0
 radius = 0
@@ -53,12 +48,12 @@ err_X_sum = 10
 err_x_past = 10
 err_y_past = 10
 #######
-PX = 0.20
-IX = 0.05
-DX = 0.01
+PX = 0.21
+IX = 0.045
+DX = 0.02
 #
-PY = 0.2
-IY = 0.01
+PY = 0.21
+IY = 0.025
 DY = 0.02
 #
 ###########################
@@ -117,9 +112,11 @@ def PID_Controller(H, V, R):
     Pwm_L=0
     Pwm_R=0
     teta=x_degree - 100
-    # print(teta,"teta")
+    # print(PX * err_x + IX * err_X_sum + DX * err_X_diff , "outPID")
     Pwm_L-=370*sin(radians(teta))
     Pwm_R+=370*sin(radians(teta))
+    # Pwm_L-= teta * 5.5
+    # Pwm_R+= teta * 5.5
 ####
     if Pwm_L > 255:
        Pwm_L=255
@@ -144,7 +141,7 @@ def PID_Controller(H, V, R):
             Pwm_R=0
     elif Pwm_R<-255 :
         Pwm_R = -255
-        print(Pwm_L, 'L')
+    print(Pwm_L, 'L')
 
 ###
     if Pwm_L>0:
@@ -170,10 +167,10 @@ def PID_Controller(H, V, R):
 #############   socket_send   ###################
 def socket_send(frame_get):
     result, imgencode = cv2.imencode('.jpg', frame_get, encode_param)
-    data = numpy.array(imgencode)
+    data = array(imgencode)
     stringdata = data.tostring()
     try:
-        my_socket.send((str(len(stringdata)).encode()).ljust(1024))
+        my_socket.send((str(len(stringdata)).encode()).ljust(16))
         my_socket.send(stringdata)
     except :
         print ("    OOPS!   \nConnection Terminated by HOST!\nThread one has been Killed!\n   :|  ")
@@ -197,7 +194,7 @@ def Get_Setting():
     while True:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
         sock.bind((UDP_IP, UDP_PORT))
-        received , addr = sock.recvfrom(1024)
+        received , addr = sock.recvfrom(16)
         settings = received.decode()
         if settings == 'Up':
             Serial_Port.write(('L,175').encode())
@@ -272,15 +269,18 @@ def Ball_tarcking():
     # blurred = cv2.GaussianBlur(frame, (11, 11), 0)
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, greenLower, greenUpper)
-    mask = cv2.erode(mask, None, iterations=2)
-    mask = cv2.dilate(mask, None, iterations=2)
-    cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)[-2]
-    center = None
+    # mask = cv2.erode(mask, None, iterations=2)
+    # mask = cv2.dilate(mask, None, iterations=2)
+    mask = cv2.morphologyEx(mask,cv2.MORPH_CLOSE,None,iterations=2)
+    cnts = cv2.findContours(mask, cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)[-2]
     if len(cnts) > 0:
         c = max(cnts, key=cv2.contourArea)
         ((x, y), radius) = cv2.minEnclosingCircle(c)
         M = cv2.moments(c)
-        center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+        try:
+            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+        except:
+            print ("ERROR")
         if radius > 10:
             cv2.circle(frame, (int(x), int(y)), int(radius),
                        (0, 255, 255), 2)
